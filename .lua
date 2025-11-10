@@ -1,4 +1,4 @@
--- Simple Spy v3 Enhanced with Batch Execution da da money
+-- Simple Spy v3 Enhanced with Batch Execution money
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
     getgenv().SimpleSpyShutdown()
