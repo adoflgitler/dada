@@ -1,4 +1,4 @@
--- Simple Spy v3 Enhanced with Batch Execution da da moneywwww
+-- Simple Spy v3 Enhanced with Batch Execution da da moneywwwwllll
 -- Complete working version with Run x1, Run x10, Run x100, Auto Spam
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
@@ -1917,6 +1917,30 @@ newButton(
         end
         if TextLabel then
             TextLabel.Text = "Executing 10 times..."
+        end
+    end
+)
+
+newButton(
+    "сила пидорская", 
+    function() return "Execute captured remote 1000 times" end,
+    function()
+        -- Execute 10 times with small delay
+        for i = 1, 1000 do
+            task.spawn(function()
+                local Remote = selected and selected.Remote
+                if Remote then
+                    if Remote:IsA("RemoteEvent") then
+                        Remote:FireServer(unpack(selected.args))
+                    else
+                        Remote:InvokeServer(unpack(selected.args))
+                    end
+                end
+                task.wait(0)
+            end)
+        end
+        if TextLabel then
+            TextLabel.Text = "Executing 1000 times..."
         end
     end
 )
