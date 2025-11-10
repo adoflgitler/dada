@@ -1921,29 +1921,6 @@ newButton(
     end
 )
 
-newButton(
-    "сила пидорская", 
-    function() return "Execute captured remote 1000 times" end,
-    function()
-        -- Execute 10 times with small delay
-        for i = 1, 1000 do
-            task.spawn(function()
-                local Remote = selected and selected.Remote
-                if Remote then
-                    if Remote:IsA("RemoteEvent") then
-                        Remote:FireServer(unpack(selected.args))
-                    else
-                        Remote:InvokeServer(unpack(selected.args))
-                    end
-                end
-                task.wait(0)
-            end)
-        end
-        if TextLabel then
-            TextLabel.Text = "Executing 1000 times..."
-        end
-    end
-)
 ----- ORIGINAL BUTTONS -----
 newButton(
     "Copy Code",
