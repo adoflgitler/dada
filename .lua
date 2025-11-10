@@ -60,7 +60,7 @@ local realconfigs = {
     advancedinfo = false,
     supersecretdevtoggle = false
 }
--- Enhanced Execution System
+-- да да деньги
 local ExecutionManager = {
     executionCount = 0,
     isSpamming = false,
@@ -70,14 +70,32 @@ local ExecutionManager = {
 function ExecutionManager:execute()
     self.executionCount += 1
     
-    -- Force refresh by toggling the spy
-    if toggle then
-        toggleSpy()
-        toggleSpy()
+    -- Execute the code from codebox like the original "Run Code" button
+    local Remote = selected and selected.Remote
+    if Remote then
+        if TextLabel then
+            TextLabel.Text = "Executing..."
+        end
+        xpcall(function()
+            local returnvalue
+            if Remote:IsA("RemoteEvent") then
+                returnvalue = Remote:FireServer(unpack(selected.args))
+            elseif Remote:IsA("RemoteFunction") then
+                returnvalue = Remote:InvokeServer(unpack(selected.args))
+            end
+
+            if TextLabel then
+                TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
+            end
+        end, function(err)
+            if TextLabel then
+                TextLabel.Text = ("Execution error!\n%s"):format(err)
+            end
+        end)
     else
-        toggleSpy()
-        task.wait(0.05)
-        toggleSpy()
+        if TextLabel then
+            TextLabel.Text = "No remote selected"
+        end
     end
     
     return self.executionCount
