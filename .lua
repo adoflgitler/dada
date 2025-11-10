@@ -1,4 +1,4 @@
--- Simple Spy v3 Enhanced with Batch Execution da da money
+-- Simple Spy v3 Enhanced with Batch Execution da da moneyэ....
 -- Complete working version with Run x1, Run x10, Run x100, Auto Spam
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
@@ -23,9 +23,14 @@ local ExecutionManager = {
 function ExecutionManager:execute()
     self.executionCount += 1
     
+    -- Execute the code like the original "Run Code" button
     if selected and selected.Remote then
         local Remote = selected.Remote
-        TextLabel.Text = "Executing..."
+        
+        -- Safe text label update
+        if TextLabel then
+            TextLabel.Text = "Executing..."
+        end
         
         local success, result = pcall(function()
             if Remote:IsA("RemoteEvent") then
@@ -35,13 +40,17 @@ function ExecutionManager:execute()
             end
         end)
         
-        if success then
-            TextLabel.Text = ("Execution #%d successful!"):format(self.executionCount)
-        else
-            TextLabel.Text = ("Execution #%d failed: %s"):format(self.executionCount, tostring(result))
+        if TextLabel then
+            if success then
+                TextLabel.Text = ("Execution #%d successful!"):format(self.executionCount)
+            else
+                TextLabel.Text = ("Execution #%d failed: %s"):format(self.executionCount, tostring(result))
+            end
         end
     else
-        TextLabel.Text = "No remote selected"
+        if TextLabel then
+            TextLabel.Text = "No remote selected"
+        end
     end
     
     return self.executionCount
