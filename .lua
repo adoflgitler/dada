@@ -60,7 +60,55 @@ local realconfigs = {
     advancedinfo = false,
     supersecretdevtoggle = false
 }
+-- Enhanced Execution System
+local ExecutionManager = {
+    executionCount = 0,
+    isSpamming = false,
+    spamTask = nil
+}
 
+function ExecutionManager:execute()
+    self.executionCount += 1
+    
+    -- Force refresh by toggling the spy
+    if toggle then
+        toggleSpy()
+        toggleSpy()
+    else
+        toggleSpy()
+        task.wait(0.05)
+        toggleSpy()
+    end
+    
+    return self.executionCount
+end
+
+function ExecutionManager:executeMultiple(count)
+    for i = 1, count do
+        task.spawn(function()
+            self:execute()
+            task.wait(0.01)
+        end)
+    end
+end
+
+function ExecutionManager:toggleSpam()
+    self.isSpamming = not self.isSpamming
+    
+    if self.isSpamming then
+        self.spamTask = task.spawn(function()
+            while self.isSpamming do
+                self:execute()
+                task.wait(0.3)
+            end
+        end)
+    else
+        if self.spamTask then
+            task.cancel(self.spamTask)
+            self.spamTask = nil
+        end
+    end
+end
 local configs = newproxy(true)
 local configsmetatable = getmetatable(configs)
 
