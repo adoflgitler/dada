@@ -1,4 +1,4 @@
--- Simple Spy v3 Enhanced with Batch Execution da da moneyw
+-- Simple Spy v3 Enhanced with Batch Execution da da moneywwww
 -- Complete working version with Run x1, Run x10, Run x100, Auto Spam
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
@@ -1868,9 +1868,31 @@ newButton(
     "Run x1",
     function() return "Execute captured remote once" end,
     function()
-        local success = ExecutionManager:execute()
-        if TextLabel then
-            TextLabel.Text = success and "Executed once!" or "Execution failed!"
+        -- Directly call the same function as original "Run Code" button
+        local Remote = selected and selected.Remote
+        if Remote then
+            if TextLabel then
+                TextLabel.Text = "Executing..."
+            end
+            xpcall(function()
+                local returnvalue
+                if Remote:IsA("RemoteEvent") then
+                    returnvalue = Remote:FireServer(unpack(selected.args))
+                else
+                    returnvalue = Remote:InvokeServer(unpack(selected.args))
+                end
+                if TextLabel then
+                    TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
+                end
+            end,function(err)
+                if TextLabel then
+                    TextLabel.Text = ("Execution error!\n%s"):format(err)
+                end
+            end)
+        else
+            if TextLabel then
+                TextLabel.Text = "Source not found"
+            end
         end
     end
 )
@@ -1879,13 +1901,25 @@ newButton(
     "Run x10", 
     function() return "Execute captured remote 10 times" end,
     function()
-        ExecutionManager:executeMultiple(10)
+        -- Execute 10 times with small delay
+        for i = 1, 10 do
+            task.spawn(function()
+                local Remote = selected and selected.Remote
+                if Remote then
+                    if Remote:IsA("RemoteEvent") then
+                        Remote:FireServer(unpack(selected.args))
+                    else
+                        Remote:InvokeServer(unpack(selected.args))
+                    end
+                end
+                task.wait(0.01)
+            end)
+        end
         if TextLabel then
             TextLabel.Text = "Executing 10 times..."
         end
     end
 )
-
 ----- ORIGINAL BUTTONS -----
 newButton(
     "Copy Code",
