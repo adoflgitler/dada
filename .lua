@@ -1,9 +1,17 @@
--- Simple Spy v3 Enhanced with Batch Execution Controls
--- Full modified version with Run x1, Run x10, Run x100, Auto Spam buttons
+-- Simple Spy v3 Enhanced with Batch Execution da da money
+-- Complete working version with Run x1, Run x10, Run x100, Auto Spam
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
     getgenv().SimpleSpyShutdown()
 end
+
+local realconfigs = {
+    logcheckcaller = false,
+    autoblock = false,
+    funcEnabled = true,
+    advancedinfo = false,
+    supersecretdevtoggle = false
+}
 
 -- Enhanced Execution System
 local ExecutionManager = {
@@ -15,87 +23,25 @@ local ExecutionManager = {
 function ExecutionManager:execute()
     self.executionCount += 1
     
-    -- Toggle spy to refresh hooks
-    if getgenv().SimpleSpy and getgenv().SimpleSpy.toggleSpyMethod then
-        getgenv().SimpleSpy.toggleSpyMethod()
-        getgenv().SimpleSpy.toggleSpyMethod()
-    end
-    
-    return self.executionCount
-end
-
-function ExecutionManager:executeMultiple(count)
-    for i = 1, count do
-        task.spawn(function()
-            self:execute()
-            task.wait(0.01)
-        end)
-    end
-end
-
-function ExecutionManager:toggleSpam()
-    self.isSpamming = not self.isSpamming
-    
-    if self.isSpamming then
-        self.spamTask = task.spawn(function()
-            local spamCount = 0
-            while self.isSpamming do
-                spamCount += 1
-                self:execute()
-                task.wait(0.3)
-            end
-        end)
-    else
-        if self.spamTask then
-            task.cancel(self.spamTask)
-            self.spamTask = nil
-        end
-    end
-end
-
-local realconfigs = {
-    logcheckcaller = false,
-    autoblock = false,
-    funcEnabled = true,
-    advancedinfo = false,
-    supersecretdevtoggle = false
-}
--- да да деньги
-local ExecutionManager = {
-    executionCount = 0,
-    isSpamming = false,
-    spamTask = nil
-}
-
-function ExecutionManager:execute()
-    self.executionCount += 1
-    
-    -- Execute the code from codebox like the original "Run Code" button
-    local Remote = selected and selected.Remote
-    if Remote then
-        if TextLabel then
-            TextLabel.Text = "Executing..."
-        end
-        xpcall(function()
-            local returnvalue
+    if selected and selected.Remote then
+        local Remote = selected.Remote
+        TextLabel.Text = "Executing..."
+        
+        local success, result = pcall(function()
             if Remote:IsA("RemoteEvent") then
-                returnvalue = Remote:FireServer(unpack(selected.args))
+                return Remote:FireServer(unpack(selected.args))
             elseif Remote:IsA("RemoteFunction") then
-                returnvalue = Remote:InvokeServer(unpack(selected.args))
-            end
-
-            if TextLabel then
-                TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
-            end
-        end, function(err)
-            if TextLabel then
-                TextLabel.Text = ("Execution error!\n%s"):format(err)
+                return Remote:InvokeServer(unpack(selected.args))
             end
         end)
-    else
-        if TextLabel then
-            TextLabel.Text = "No remote selected"
+        
+        if success then
+            TextLabel.Text = ("Execution #%d successful!"):format(self.executionCount)
+        else
+            TextLabel.Text = ("Execution #%d failed: %s"):format(self.executionCount, tostring(result))
         end
+    else
+        TextLabel.Text = "No remote selected"
     end
     
     return self.executionCount
@@ -105,7 +51,7 @@ function ExecutionManager:executeMultiple(count)
     for i = 1, count do
         task.spawn(function()
             self:execute()
-            task.wait(0.01)
+            task.wait(0.05)
         end)
     end
 end
@@ -117,7 +63,7 @@ function ExecutionManager:toggleSpam()
         self.spamTask = task.spawn(function()
             while self.isSpamming do
                 self:execute()
-                task.wait(0.3)
+                task.wait(0.5)
             end
         end)
     else
@@ -127,6 +73,7 @@ function ExecutionManager:toggleSpam()
         end
     end
 end
+
 local configs = newproxy(true)
 local configsmetatable = getmetatable(configs)
 
@@ -333,7 +280,7 @@ function ErrorPrompt(Message,state)
     end
 end
 
-local Highlight = (isfile and loadfile and isfile("Highlight.lua") and loadfile("Highlight.lua")()) or loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/Highlight.lua"))()
+local Highlight = loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/Highlight.lua"))()
 
 local SimpleSpy3 = Create("ScreenGui",{ResetOnSpawn = false})
 local Storage = Create("Folder",{})
@@ -1865,7 +1812,6 @@ local function shutdown()
     getgenv().SimpleSpyExecuted = false
 end
 
--- main
 if not getgenv().SimpleSpyExecuted then
     local succeeded,err = pcall(function()
         if not RunService:IsClient() then
@@ -1944,16 +1890,15 @@ end
 ----- ENHANCED EXECUTION CONTROLS -----
 newButton(
     "Run x1",
-    function() return "Execute Simple Spy once" end,
+    function() return "Execute captured remote once" end,
     function()
-        local count = ExecutionManager:execute()
-        TextLabel.Text = string.format("Execution #%d completed", count)
+        ExecutionManager:execute()
     end
 )
 
 newButton(
     "Run x10", 
-    function() return "Execute Simple Spy 10 times" end,
+    function() return "Execute captured remote 10 times" end,
     function()
         ExecutionManager:executeMultiple(10)
         TextLabel.Text = "Batch execution started (x10)"
@@ -1962,7 +1907,7 @@ newButton(
 
 newButton(
     "Run x100",
-    function() return "Execute Simple Spy 100 times" end,
+    function() return "Execute captured remote 100 times" end,
     function()
         ExecutionManager:executeMultiple(100)
         TextLabel.Text = "Batch execution started (x100)"
@@ -1972,7 +1917,7 @@ newButton(
 newButton(
     "Auto Spam",
     function() 
-        return string.format("[%s] Toggle continuous execution", ExecutionManager.isSpamming and "ACTIVE" or "INACTIVE") 
+        return string.format("[%s] Continuous execution", ExecutionManager.isSpamming and "ACTIVE" or "INACTIVE") 
     end,
     function()
         ExecutionManager:toggleSpam()
