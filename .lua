@@ -1,4 +1,4 @@
--- Simple Spy v3 Enhanced with Batch Execution da da moneyэ....
+-- Simple Spy v3 Enhanced with Batch Execution da da moneyw
 -- Complete working version with Run x1, Run x10, Run x100, Auto Spam
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
@@ -27,11 +27,7 @@ function ExecutionManager:execute()
     if selected and selected.Remote then
         local Remote = selected.Remote
         
-        -- Safe text label update
-        if TextLabel then
-            TextLabel.Text = "Executing..."
-        end
-        
+        -- Use the same logic as original "Run Code" button
         local success, result = pcall(function()
             if Remote:IsA("RemoteEvent") then
                 return Remote:FireServer(unpack(selected.args))
@@ -40,49 +36,20 @@ function ExecutionManager:execute()
             end
         end)
         
-        if TextLabel then
-            if success then
-                TextLabel.Text = ("Execution #%d successful!"):format(self.executionCount)
-            else
-                TextLabel.Text = ("Execution #%d failed: %s"):format(self.executionCount, tostring(result))
-            end
-        end
-    else
-        if TextLabel then
-            TextLabel.Text = "No remote selected"
-        end
+        return success
     end
     
-    return self.executionCount
+    return false
 end
 
 function ExecutionManager:executeMultiple(count)
     for i = 1, count do
         task.spawn(function()
             self:execute()
-            task.wait(0.05)
+            task.wait(0.02)
         end)
     end
 end
-
-function ExecutionManager:toggleSpam()
-    self.isSpamming = not self.isSpamming
-    
-    if self.isSpamming then
-        self.spamTask = task.spawn(function()
-            while self.isSpamming do
-                self:execute()
-                task.wait(0.5)
-            end
-        end)
-    else
-        if self.spamTask then
-            task.cancel(self.spamTask)
-            self.spamTask = nil
-        end
-    end
-end
-
 local configs = newproxy(true)
 local configsmetatable = getmetatable(configs)
 
@@ -1901,7 +1868,10 @@ newButton(
     "Run x1",
     function() return "Execute captured remote once" end,
     function()
-        ExecutionManager:execute()
+        local success = ExecutionManager:execute()
+        if TextLabel then
+            TextLabel.Text = success and "Executed once!" or "Execution failed!"
+        end
     end
 )
 
@@ -1910,27 +1880,9 @@ newButton(
     function() return "Execute captured remote 10 times" end,
     function()
         ExecutionManager:executeMultiple(10)
-        TextLabel.Text = "Batch execution started (x10)"
-    end
-)
-
-newButton(
-    "Run x100",
-    function() return "Execute captured remote 100 times" end,
-    function()
-        ExecutionManager:executeMultiple(100)
-        TextLabel.Text = "Batch execution started (x100)"
-    end
-)
-
-newButton(
-    "Auto Spam",
-    function() 
-        return string.format("[%s] Continuous execution", ExecutionManager.isSpamming and "ACTIVE" or "INACTIVE") 
-    end,
-    function()
-        ExecutionManager:toggleSpam()
-        TextLabel.Text = string.format("Auto spam %s", ExecutionManager.isSpamming and "enabled" or "disabled")
+        if TextLabel then
+            TextLabel.Text = "Executing 10 times..."
+        end
     end
 )
 
