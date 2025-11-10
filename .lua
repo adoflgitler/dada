@@ -1,5 +1,3 @@
--- Simple Spy v3 Enhanced with Batch Execution money
-
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
     getgenv().SimpleSpyShutdown()
 end
@@ -12,43 +10,78 @@ local realconfigs = {
     supersecretdevtoggle = false
 }
 
--- Enhanced Execution System
 local ExecutionManager = {
     executionCount = 0,
-    isSpamming = false,
-    spamTask = nil
+    spamTasks = {}
 }
 
 function ExecutionManager:execute()
     self.executionCount += 1
-    
-    -- Execute the code like the original "Run Code" button
     if selected and selected.Remote then
         local Remote = selected.Remote
-        
-        -- Use the same logic as original "Run Code" button
-        local success, result = pcall(function()
+        if TextLabel then
+            TextLabel.Text = "Executing..."
+        end
+        xpcall(function()
+            local returnvalue
             if Remote:IsA("RemoteEvent") then
-                return Remote:FireServer(unpack(selected.args))
-            elseif Remote:IsA("RemoteFunction") then
-                return Remote:InvokeServer(unpack(selected.args))
+                returnvalue = Remote:FireServer(unpack(selected.args))
+            else
+                returnvalue = Remote:InvokeServer(unpack(selected.args))
+            end
+            if TextLabel then
+                TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
+            end
+        end,function(err)
+            if TextLabel then
+                TextLabel.Text = ("Execution error!\n%s"):format(err)
             end
         end)
-        
-        return success
+    else
+        if TextLabel then
+            TextLabel.Text = "Source not found"
+        end
     end
-    
-    return false
+    return self.executionCount
 end
 
 function ExecutionManager:executeMultiple(count)
     for i = 1, count do
         task.spawn(function()
-            self:execute()
-            task.wait(0.02)
+            if selected and selected.Remote then
+                local Remote = selected.Remote
+                if Remote:IsA("RemoteEvent") then
+                    Remote:FireServer(unpack(selected.args))
+                else
+                    Remote:InvokeServer(unpack(selected.args))
+                end
+            end
         end)
     end
 end
+
+function ExecutionManager:toggleSpam()
+    if selected and selected.Remote then
+        local taskId = tostring(selected.Remote)
+        if self.spamTasks[taskId] then
+            return
+        end
+        self.spamTasks[taskId] = task.spawn(function()
+            while self.spamTasks[taskId] do
+                if selected and selected.Remote then
+                    local Remote = selected.Remote
+                    if Remote:IsA("RemoteEvent") then
+                        Remote:FireServer(unpack(selected.args))
+                    else
+                        Remote:InvokeServer(unpack(selected.args))
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end
+
 local configs = newproxy(true)
 local configsmetatable = getmetatable(configs)
 
@@ -234,7 +267,7 @@ function ErrorPrompt(Message,state)
         local ErrorStoarge = Create("ScreenGui",{Parent = CoreGui,ResetOnSpawn = false})
         local thread = state and running()
         prompt:setParent(ErrorStoarge)
-        prompt:setErrorTitle("Simple Spy V3 Error")
+        prompt:setErrorTitle("nluat Error")
         prompt:updateButtons({{
             Text = "Proceed",
             Callback = function()
@@ -257,9 +290,9 @@ end
 
 local Highlight = loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/Highlight.lua"))()
 
-local SimpleSpy3 = Create("ScreenGui",{ResetOnSpawn = false})
+local nluat = Create("ScreenGui",{ResetOnSpawn = false})
 local Storage = Create("Folder",{})
-local Background = Create("Frame",{Parent = SimpleSpy3,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 500, 0, 200),Size = UDim2.new(0, 450, 0, 268)})
+local Background = Create("Frame",{Parent = nluat,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 500, 0, 200),Size = UDim2.new(0, 450, 0, 268)})
 local LeftPanel = Create("Frame",{Parent = Background,BackgroundColor3 = Color3.fromRGB(53, 52, 55),BorderSizePixel = 0,Position = UDim2.new(0, 0, 0, 19),Size = UDim2.new(0, 131, 0, 249)})
 local LogList = Create("ScrollingFrame",{Parent = LeftPanel,Active = true,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,BorderSizePixel = 0,Position = UDim2.new(0, 0, 0, 9),Size = UDim2.new(0, 131, 0, 232),CanvasSize = UDim2.new(0, 0, 0, 0),ScrollBarThickness = 4})
 local UIListLayout = Create("UIListLayout",{Parent = LogList,HorizontalAlignment = Enum.HorizontalAlignment.Center,SortOrder = Enum.SortOrder.LayoutOrder})
@@ -268,7 +301,7 @@ local CodeBox = Create("Frame",{Parent = RightPanel,BackgroundColor3 = Color3.ne
 local ScrollingFrame = Create("ScrollingFrame",{Parent = RightPanel,Active = true,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 0, 0.5, 0),Size = UDim2.new(1, 0, 0.5, -9),CanvasSize = UDim2.new(0, 0, 0, 0),ScrollBarThickness = 4})
 local UIGridLayout = Create("UIGridLayout",{Parent = ScrollingFrame,HorizontalAlignment = Enum.HorizontalAlignment.Center,SortOrder = Enum.SortOrder.LayoutOrder,CellPadding = UDim2.new(0, 0, 0, 0),CellSize = UDim2.new(0, 94, 0, 27)})
 local TopBar = Create("Frame",{Parent = Background,BackgroundColor3 = Color3.fromRGB(37, 35, 38),BorderSizePixel = 0,Size = UDim2.new(0, 450, 0, 19)})
-local Simple = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(1, 1, 1),AutoButtonColor = false,BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 0),Size = UDim2.new(0, 57, 0, 18),Font = Enum.Font.SourceSansBold,Text =  "SimpleSpy",TextColor3 = Color3.new(1, 1, 1),TextSize = 14,TextXAlignment = Enum.TextXAlignment.Left})
+local Title = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(1, 1, 1),AutoButtonColor = false,BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 0),Size = UDim2.new(0, 57, 0, 18),Font = Enum.Font.SourceSansBold,Text =  "nluat",TextColor3 = Color3.new(1, 1, 1),TextSize = 14,TextXAlignment = Enum.TextXAlignment.Left})
 local CloseButton = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(0.145098, 0.141176, 0.14902),BorderSizePixel = 0,Position = UDim2.new(1, -19, 0, 0),Size = UDim2.new(0, 19, 0, 19),Font = Enum.Font.SourceSans,Text = "",TextColor3 = Color3.new(0, 0, 0),TextSize = 14})
 local ImageLabel = Create("ImageLabel",{Parent = CloseButton,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 5),Size = UDim2.new(0, 9, 0, 9),Image = "http://www.roblox.com/asset/?id=5597086202"})
 local MaximizeButton = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(0.145098, 0.141176, 0.14902),BorderSizePixel = 0,Position = UDim2.new(1, -38, 0, 0),Size = UDim2.new(0, 19, 0, 19),Font = Enum.Font.SourceSans,Text = "",TextColor3 = Color3.new(0, 0, 0),TextSize = 14})
@@ -276,7 +309,7 @@ local ImageLabel_2 = Create("ImageLabel",{Parent = MaximizeButton,BackgroundColo
 local MinimizeButton = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(0.145098, 0.141176, 0.14902),BorderSizePixel = 0,Position = UDim2.new(1, -57, 0, 0),Size = UDim2.new(0, 19, 0, 19),Font = Enum.Font.SourceSans,Text = "",TextColor3 = Color3.new(0, 0, 0),TextSize = 14})
 local ImageLabel_3 = Create("ImageLabel",{Parent = MinimizeButton,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 5),Size = UDim2.new(0, 9, 0, 9),Image = "http://www.roblox.com/asset/?id=5597105827"})
 
-local ToolTip = Create("Frame",{Parent = SimpleSpy3,BackgroundColor3 = Color3.fromRGB(26, 26, 26),BackgroundTransparency = 0.1,BorderColor3 = Color3.new(1, 1, 1),Size = UDim2.new(0, 200, 0, 50),ZIndex = 3,Visible = false})
+local ToolTip = Create("Frame",{Parent = nluat,BackgroundColor3 = Color3.fromRGB(26, 26, 26),BackgroundTransparency = 0.1,BorderColor3 = Color3.new(1, 1, 1),Size = UDim2.new(0, 200, 0, 50),ZIndex = 3,Visible = false})
 local TextLabel = Create("TextLabel",{Parent = ToolTip,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 2, 0, 2),Size = UDim2.new(0, 196, 0, 46),ZIndex = 3,Font = Enum.Font.SourceSans,Text = "This is some slightly longer text.",TextColor3 = Color3.new(1, 1, 1),TextSize = 14,TextWrapped = true,TextXAlignment = Enum.TextXAlignment.Left,TextYAlignment = Enum.TextYAlignment.Top})
 
 local selectedColor = Color3.new(0.321569, 0.333333, 1)
@@ -347,7 +380,7 @@ end
 
 xpcall(function()
     if isfile and readfile and isfolder and makefolder then
-        local cachedconfigs = isfile("SimpleSpy//Settings.json") and jsond(readfile("SimpleSpy//Settings.json"))
+        local cachedconfigs = isfile("nluat//Settings.json") and jsond(readfile("nluat//Settings.json"))
 
         if cachedconfigs then
             for i,v in next, realconfigs do
@@ -358,19 +391,19 @@ xpcall(function()
             realconfigs = cachedconfigs
         end
 
-        if not isfolder("SimpleSpy") then
-            makefolder("SimpleSpy")
+        if not isfolder("nluat") then
+            makefolder("nluat")
         end
-        if not isfolder("SimpleSpy//Assets") then
-            makefolder("SimpleSpy//Assets")
+        if not isfolder("nluat//Assets") then
+            makefolder("nluat//Assets")
         end
-        if not isfile("SimpleSpy//Settings.json") then
-            writefile("SimpleSpy//Settings.json",jsone(realconfigs))
+        if not isfile("nluat//Settings.json") then
+            writefile("nluat//Settings.json",jsone(realconfigs))
         end
 
         configsmetatable.__newindex = function(self,index,newindex)
             realconfigs[index] = newindex
-            writefile("SimpleSpy//Settings.json",jsone(realconfigs))
+            writefile("nluat//Settings.json",jsone(realconfigs))
         end
     else
         configsmetatable.__newindex = function(self,index,newindex)
@@ -420,14 +453,14 @@ end
 
 function onToggleButtonHover()
     if not toggle then
-        TweenService:Create(Simple, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(252, 51, 51)}):Play()
+        TweenService:Create(Title, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(252, 51, 51)}):Play()
     else
-        TweenService:Create(Simple, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(68, 206, 91)}):Play()
+        TweenService:Create(Title, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(68, 206, 91)}):Play()
     end
 end
 
 function onToggleButtonUnhover()
-    TweenService:Create(Simple, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+    TweenService:Create(Title, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
 end
 
 function onXButtonHover()
@@ -440,9 +473,9 @@ end
 
 function onToggleButtonClick()
     if toggle then
-        TweenService:Create(Simple, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(252, 51, 51)}):Play()
+        TweenService:Create(Title, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(252, 51, 51)}):Play()
     else
-        TweenService:Create(Simple, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(68, 206, 91)}):Play()
+        TweenService:Create(Title, TweenInfo.new(0.5), {TextColor3 = Color3.fromRGB(68, 206, 91)}):Play()
     end
     toggleSpyMethod()
 end
@@ -688,17 +721,17 @@ function isInDragRange(p)
     return relativeP.X <= topbarAS.X - CloseButton.AbsoluteSize.X * 3 and relativeP.X >= 0 and relativeP.Y <= topbarAS.Y and relativeP.Y >= 0 or false
 end
 
-local customCursor = Create("ImageLabel",{Parent = SimpleSpy3,Visible = false,Size = UDim2.fromOffset(200, 200),ZIndex = 1e9,BackgroundTransparency = 1,Image = "",Parent = SimpleSpy3})
+local customCursor = Create("ImageLabel",{Parent = nluat,Visible = false,Size = UDim2.fromOffset(200, 200),ZIndex = 1e9,BackgroundTransparency = 1,Image = "",Parent = nluat})
 function mouseEntered()
-    local con = connections["SIMPLESPY_CURSOR"]
+    local con = connections["nluat_CURSOR"]
     if con then
         con:Disconnect()
-        connections["SIMPLESPY_CURSOR"] = nil
+        connections["nluat_CURSOR"] = nil
     end
-    connections["SIMPLESPY_CURSOR"] = RunService.RenderStepped:Connect(function()
+    connections["nluat_CURSOR"] = RunService.RenderStepped:Connect(function()
         UserInputService.MouseIconEnabled = not mouseInGui
         customCursor.Visible = mouseInGui
-        if mouseInGui and getgenv().SimpleSpyExecuted then
+        if mouseInGui and getgenv().nluatExecuted then
             local mouseLocation = UserInputService:GetMouseLocation() - GuiInset
             customCursor.Position = UDim2.fromOffset(mouseLocation.X - customCursor.AbsoluteSize.X / 2, mouseLocation.Y - customCursor.AbsoluteSize.Y / 2)
             local inRange, type = isInResizeRange(mouseLocation)
@@ -712,7 +745,7 @@ function mouseEntered()
                 customCursor.Image = "rbxassetid://6065775281"
             end
         else
-            connections["SIMPLESPY_CURSOR"]:Disconnect()
+            connections["nluat_CURSOR"]:Disconnect()
         end
     end)
 end
@@ -781,8 +814,8 @@ function backgroundUserInput(input)
         local lastPos = UserInputService:GetMouseLocation()
         local offset = Background.AbsoluteSize - lastPos
         local currentPos = lastPos + offset
-        if not connections["SIMPLESPY_RESIZE"] then
-            connections["SIMPLESPY_RESIZE"] = RunService.RenderStepped:Connect(function()
+        if not connections["nluat_RESIZE"] then
+            connections["nluat_RESIZE"] = RunService.RenderStepped:Connect(function()
                 local newPos = UserInputService:GetMouseLocation()
                 if newPos ~= lastPos then
                     local currentX = (newPos + offset).X
@@ -807,9 +840,9 @@ function backgroundUserInput(input)
         end
         table.insert(connections, UserInputService.InputEnded:Connect(function(inputE)
             if input == inputE then
-                if connections["SIMPLESPY_RESIZE"] then
-                    connections["SIMPLESPY_RESIZE"]:Disconnect()
-                    connections["SIMPLESPY_RESIZE"] = nil
+                if connections["nluat_RESIZE"] then
+                    connections["nluat_RESIZE"]:Disconnect()
+                    connections["nluat_RESIZE"] = nil
                 end
             end
         end))
@@ -965,7 +998,7 @@ function newRemote(type, data)
         eventSelect(RemoteTemplate)
         log.GenScript = genScript(log.Remote, log.args)
         if blocked then
-            log.GenScript = "-- THIS REMOTE WAS PREVENTED FROM FIRING TO THE SERVER BY SIMPLESPY\n\n" .. log.GenScript
+            log.GenScript = "-- THIS REMOTE WAS PREVENTED FROM FIRING TO THE SERVER BY nluat\n\n" .. log.GenScript
         end
         if selected == log and RemoteTemplate then
             eventSelect(RemoteTemplate)
@@ -1266,8 +1299,8 @@ function t2s(t, l, p, n, vtv, i, pt, path, tables, tI)
     l += indent
     for k, v in next, t do
         size = size + 1
-        if size > (getgenv().SimpleSpyMaxTableSize or 1000) then
-            s = s .. "\n" .. string.rep(" ", l) .. "-- MAXIMUM TABLE SIZE REACHED, CHANGE 'getgenv().SimpleSpyMaxTableSize' TO ADJUST MAXIMUM SIZE "
+        if size > (getgenv().nluatMaxTableSize or 1000) then
+            s = s .. "\n" .. string.rep(" ", l) .. "-- MAXIMUM TABLE SIZE REACHED, CHANGE 'getgenv().nluatMaxTableSize' TO ADJUST MAXIMUM SIZE "
             break
         end
         if rawequal(k, t) then
@@ -1441,7 +1474,7 @@ function formatstr(s, indentation)
         indentation = 0
     end
     local handled, reachedMax = handlespecials(s, indentation)
-    return '"' .. handled .. '"' .. (reachedMax and " --[[ MAXIMUM STRING SIZE REACHED, CHANGE 'getgenv().SimpleSpyMaxStringSize' TO ADJUST MAXIMUM SIZE ]]" or "")
+    return '"' .. handled .. '"' .. (reachedMax and " --[[ MAXIMUM STRING SIZE REACHED, CHANGE 'getgenv().nluatMaxStringSize' TO ADJUST MAXIMUM SIZE ]]" or "")
 end
 
 local function isFinished(coroutines: table)
@@ -1504,13 +1537,13 @@ function handlespecials(s, indentation)
                 n += 1
             end
         end
-    until char == "" or i > (getgenv().SimpleSpyMaxStringSize or 10000)
+    until char == "" or i > (getgenv().nluatMaxStringSize or 10000)
     while not isFinished(coroutines) do
         RunService.Heartbeat:Wait()
     end
     clear(coroutines)
-    if i > (getgenv().SimpleSpyMaxStringSize or 10000) then
-        s = string.sub(s, 0, getgenv().SimpleSpyMaxStringSize or 10000)
+    if i > (getgenv().nluatMaxStringSize or 10000) then
+        s = string.sub(s, 0, getgenv().nluatMaxStringSize or 10000)
         return s, true
     end
     return s, false
@@ -1706,7 +1739,7 @@ local newnamecall = newcclosure(function(...)
         end
     end
     return originalnamecall(...)
-end)
+end
 
 local newFireServer = newcclosure(function(...)
     return newindex("FireServer",originalEvent,...)
@@ -1714,7 +1747,7 @@ end)
 
 local newInvokeServer = newcclosure(function(...)
     return newindex("InvokeServer",originalFunction,...)
-end)
+end
 
 local function disablehooks()
     if synv3 then
@@ -1780,29 +1813,31 @@ local function shutdown()
     clear(connections)
     clear(logs)
     clear(remoteLogs)
+    for taskId, task in pairs(ExecutionManager.spamTasks) do
+        if task then
+            task.cancel(task)
+        end
+    end
+    clear(ExecutionManager.spamTasks)
     disablehooks()
-    SimpleSpy3:Destroy()
+    nluat:Destroy()
     Storage:Destroy()
     UserInputService.MouseIconEnabled = true
-    getgenv().SimpleSpyExecuted = false
+    getgenv().nluatExecuted = false
 end
 
-if not getgenv().SimpleSpyExecuted then
+if not getgenv().nluatExecuted then
     local succeeded,err = pcall(function()
         if not RunService:IsClient() then
-            error("SimpleSpy cannot run on the server!")
+            error("nluat cannot run on the server!")
         end
-        getgenv().SimpleSpyShutdown = shutdown
+        getgenv().nluatShutdown = shutdown
         onToggleButtonClick()
         if not hookmetamethod then
-            ErrorPrompt("Simple Spy V3 will not function to it's fullest capablity due to your executor not supporting hookmetamethod.",true)
+            ErrorPrompt("nluat will not function to it's fullest capablity due to your executor not supporting hookmetamethod.",true)
         end
         codebox = Highlight.new(CodeBox)
-        logthread(spawn(function()
-            local suc,err = pcall(game.HttpGet,game,"https://raw.githubusercontent.com/78n/SimpleSpy/main/UpdateLog.lua")
-            codebox:setRaw((suc and err) or "")
-        end))
-        getgenv().SimpleSpy = SimpleSpy
+        getgenv().nluat = SimpleSpy
         getgenv().getNil = function(name,class)
 			for _,v in next, getnilinstances() do
 				if v.ClassName == class and v.Name == name then
@@ -1819,23 +1854,21 @@ if not getgenv().SimpleSpyExecuted then
             mouseEntered()
         end)
         TextLabel:GetPropertyChangedSignal("Text"):Connect(scaleToolTip)
+        Title.InputBegan:Connect(onBarInput)
         MinimizeButton.MouseButton1Click:Connect(toggleMinimize)
         MaximizeButton.MouseButton1Click:Connect(toggleSideTray)
-        Simple.MouseButton1Click:Connect(onToggleButtonClick)
+        Title.MouseButton1Click:Connect(onToggleButtonClick)
         CloseButton.MouseEnter:Connect(onXButtonHover)
         CloseButton.MouseLeave:Connect(onXButtonUnhover)
-        Simple.MouseEnter:Connect(onToggleButtonHover)
-        Simple.MouseLeave:Connect(onToggleButtonUnhover)
+        Title.MouseEnter:Connect(onToggleButtonHover)
+        Title.MouseLeave:Connect(onToggleButtonUnhover)
         CloseButton.MouseButton1Click:Connect(shutdown)
         table.insert(connections, UserInputService.InputBegan:Connect(backgroundUserInput))
         connectResize()
-        SimpleSpy3.Enabled = true
-        logthread(spawn(function()
-            delay(1,onToggleButtonUnhover)
-        end))
+        nluat.Enabled = true
         schedulerconnect = RunService.Heartbeat:Connect(taskscheduler)
         bringBackOnResize()
-        SimpleSpy3.Parent = (gethui and gethui()) or (syn and syn.protect_gui and syn.protect_gui(SimpleSpy3)) or CoreGui
+        nluat.Parent = (gethui and gethui()) or (syn and syn.protect_gui and syn.protect_gui(nluat)) or CoreGui
         logthread(spawn(function()
             local lp = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
             generation = {
@@ -1847,14 +1880,14 @@ if not getgenv().SimpleSpyExecuted then
         end))
     end)
     if succeeded then
-        getgenv().SimpleSpyExecuted = true
+        getgenv().nluatExecuted = true
     else
         shutdown()
         ErrorPrompt("An error has occured:\n"..rawtostring(err))
         return
     end
 else
-    SimpleSpy3:Destroy()
+    nluat:Destroy()
     return
 end
 
@@ -1862,17 +1895,13 @@ function SimpleSpy:newButton(name, description, onClick)
     return newButton(name, description, onClick)
 end
 
------ ENHANCED EXECUTION CONTROLS -----
 newButton(
-    "Run x1",
-    function() return "Execute captured remote once" end,
+    "Run Code",
+    function() return "Click to execute code" end,
     function()
-        -- Directly call the same function as original "Run Code" button
         local Remote = selected and selected.Remote
         if Remote then
-            if TextLabel then
-                TextLabel.Text = "Executing..."
-            end
+            TextLabel.Text = "Executing..."
             xpcall(function()
                 local returnvalue
                 if Remote:IsA("RemoteEvent") then
@@ -1880,47 +1909,43 @@ newButton(
                 else
                     returnvalue = Remote:InvokeServer(unpack(selected.args))
                 end
-                if TextLabel then
-                    TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
-                end
+                TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
             end,function(err)
-                if TextLabel then
-                    TextLabel.Text = ("Execution error!\n%s"):format(err)
-                end
+                TextLabel.Text = ("Execution error!\n%s"):format(err)
             end)
-        else
-            if TextLabel then
-                TextLabel.Text = "Source not found"
-            end
+            return
         end
+        TextLabel.Text = "Source not found"
     end
 )
 
 newButton(
-    "Run x10", 
-    function() return "Execute captured remote 10 times" end,
+    "Run x100",
+    function() return "Execute captured remote 100 times" end,
     function()
-        -- Execute 10 times with small delay
-        for i = 1, 10 do
-            task.spawn(function()
-                local Remote = selected and selected.Remote
-                if Remote then
-                    if Remote:IsA("RemoteEvent") then
-                        Remote:FireServer(unpack(selected.args))
-                    else
-                        Remote:InvokeServer(unpack(selected.args))
-                    end
-                end
-                task.wait(0.01)
-            end)
-        end
-        if TextLabel then
-            TextLabel.Text = "Executing 10 times..."
-        end
+        ExecutionManager:executeMultiple(100)
+        TextLabel.Text = "Executing 100 times..."
     end
 )
 
------ ORIGINAL BUTTONS -----
+newButton(
+    "Run x1000",
+    function() return "Execute captured remote 1000 times" end,
+    function()
+        ExecutionManager:executeMultiple(1000)
+        TextLabel.Text = "Executing 1000 times..."
+    end
+)
+
+newButton(
+    "Auto Spam",
+    function() return "Continuous execution without stopping" end,
+    function()
+        ExecutionManager:toggleSpam()
+        TextLabel.Text = "Auto spam started!"
+    end
+)
+
 newButton(
     "Copy Code",
     function() return "Click to copy code" end,
@@ -1938,30 +1963,6 @@ newButton(
             setclipboard(v2s(selected.Remote))
             TextLabel.Text = "Copied!"
         end
-    end
-)
-
-newButton("Run Code",
-    function() return "Click to execute code" end,
-    function()
-        local Remote = selected and selected.Remote
-        if Remote then
-            TextLabel.Text = "Executing..."
-            xpcall(function()
-                local returnvalue
-                if Remote:IsA("RemoteEvent") then
-                    returnvalue = Remote:FireServer(unpack(selected.args))
-                else
-                    returnvalue = Remote:InvokeServer(unpack(selected.args))
-                end
-
-                TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
-            end,function(err)
-                TextLabel.Text = ("Execution error!\n%s"):format(err)
-            end)
-            return
-        end
-        TextLabel.Text = "Source not found"
     end
 )
 
@@ -1986,7 +1987,7 @@ function()
         local typeoffunc = typeof(func)
 
         if typeoffunc ~= 'string' then
-            codebox:setRaw("--[[Generating Function Info please wait]]")
+            codebox:setRaw("Generating Function Info please wait")
             RunService.Heartbeat:Wait()
             local lclosure = islclosure(func)
             local SourceScript = rawget(getfenv(func),"script")
@@ -1995,7 +1996,7 @@ function()
             
             info = {
                 info = getinfo(func),
-                constants = lclosure and deepclone(getconstants(func)) or "N/A --Lua Closure expected got C Closure",
+                constants = lclosure and deepclone(getconstants(func)) or "N/A",
                 upvalues = deepclone(getupvalues(func)),
                 script = {
                     SourceScript = SourceScript or 'nil',
@@ -2013,11 +2014,11 @@ function()
                         CallingScriptDebugId = CallingScript and typeof(SourceScript) == "Instance" and OldDebugId(CallingScript) or "N/A",
                         RemoteDebugId = OldDebugId(Remote)
                     },
-                    Protos = lclosure and getprotos(func) or "N/A --Lua Closure expected got C Closure"
+                    Protos = lclosure and getprotos(func) or "N/A"
                 }
 
                 if Remote:IsA("RemoteFunction") then
-                    info["advancedinfo"]["OnClientInvoke"] = getcallbackmember and (getcallbackmember(Remote,"OnClientInvoke") or "N/A") or "N/A --Missing function getcallbackmember"
+                    info["advancedinfo"]["OnClientInvoke"] = getcallbackmember and (getcallbackmember(Remote,"OnClientInvoke") or "N/A") or "N/A"
                 elseif getconnections then
                     info["advancedinfo"]["OnClientEvents"] = {}
 
@@ -2029,11 +2030,11 @@ function()
                     end
                 end
             end
-            codebox:setRaw("--[[Converting table to string please wait]]")
+            codebox:setRaw("Converting table to string please wait")
             selected.Function = v2v({functionInfo = info})
         end
-        codebox:setRaw("-- Calling function info\n-- Generated by the SimpleSpy V3 serializer\n\n"..selected.Function)
-        TextLabel.Text = "Done! Function info generated by the SimpleSpy V3 Serializer."
+        codebox:setRaw("Calling function info\nGenerated by the nluat serializer\n\n"..selected.Function)
+        TextLabel.Text = "Done! Function info generated by the nluat Serializer."
     else
         TextLabel.Text = "Error! Selected function was not found."
     end
@@ -2058,7 +2059,7 @@ newButton(
 
 newButton(
     "Exclude (i)",
-    function() return "Click to exclude this Remote.\nExcluding a remote makes SimpleSpy ignore it, but it will continue to be usable." end,
+    function() return "Click to exclude this Remote.\nExcluding a remote makes nluat ignore it, but it will continue to be usable." end,
     function()
         if selected then
             blacklist[OldDebugId(selected.Remote)] = true
@@ -2069,7 +2070,7 @@ newButton(
 
 newButton(
     "Exclude (n)",
-    function() return "Click to exclude all remotes with this name.\nExcluding a remote makes SimpleSpy ignore it, but it will continue to be usable." end,
+    function() return "Click to exclude all remotes with this name.\nExcluding a remote makes nluat ignore it, but it will continue to be usable." end,
     function()
         if selected then
             blacklist[selected.Name] = true
@@ -2079,7 +2080,7 @@ newButton(
 )
 
 newButton("Clr Blacklist",
-function() return "Click to clear the blacklist.\nExcluding a remote makes SimpleSpy ignore it, but it will continue to be usable." end,
+function() return "Click to clear the blacklist.\nExcluding a remote makes nluat ignore it, but it will continue to be usable." end,
 function()
     blacklist = {}
     TextLabel.Text = "Blacklist cleared!"
@@ -2087,7 +2088,7 @@ end)
 
 newButton(
     "Block (i)",
-    function() return "Click to stop this remote from firing.\nBlocking a remote won't remove it from SimpleSpy logs, but it will not continue to fire the server." end,
+    function() return "Click to stop this remote from firing.\nBlocking a remote won't remove it from nluat logs, but it will not continue to fire the server." end,
     function()
         if selected then
             blocklist[OldDebugId(selected.Remote)] = true
@@ -2097,7 +2098,7 @@ newButton(
 )
 
 newButton("Block (n)",function()
-    return "Click to stop remotes with this name from firing.\nBlocking a remote won't remove it from SimpleSpy logs, but it will not continue to fire the server." end,
+    return "Click to stop remotes with this name from firing.\nBlocking a remote won't remove it from nluat logs, but it will not continue to fire the server." end,
     function()
         if selected then
             blocklist[selected.Name] = true
@@ -2108,7 +2109,7 @@ newButton("Block (n)",function()
 
 newButton(
     "Clr Blocklist",
-    function() return "Click to stop blocking remotes.\nBlocking a remote won't remove it from SimpleSpy logs, but it will not continue to fire the server." end,
+    function() return "Click to stop blocking remotes.\nBlocking a remote won't remove it from nluat logs, but it will not continue to fire the server." end,
     function()
         blocklist = {}
         TextLabel.Text = "Blocklist cleared!"
@@ -2123,7 +2124,7 @@ newButton("Decompile",
             if selected and selected.Source then
                 local Source = selected.Source
                 if not DecompiledScripts[Source] then
-                    codebox:setRaw("--[[Decompiling]]")
+                    codebox:setRaw("Decompiling")
 
                     xpcall(function()
                         local decompiledsource = decompile(Source):gsub("-- Decompiled with the Synapse X Luau decompiler.","")
@@ -2132,10 +2133,10 @@ newButton("Decompile",
                             DecompiledScripts[Source] = ("local script = %s\n%s"):format(Sourcev2s,decompiledsource)
                         end
                     end,function(err)
-                        return codebox:setRaw(("--[[\nAn error has occured\n%s\n]]"):format(err))
+                        return codebox:setRaw(("An error has occured\n%s"):format(err))
                     end)
                 end
-                codebox:setRaw(DecompiledScripts[Source] or "--No Source Found")
+                codebox:setRaw(DecompiledScripts[Source] or "No Source Found")
                 TextLabel.Text = "Done!"
             else
                 TextLabel.Text = "Source not found!"
@@ -2182,42 +2183,6 @@ function()
     TextLabel.Text = ("[%s] Display more remoteinfo"):format(configs.advancedinfo and "ENABLED" or "DISABLED")
 end)
 
-newButton("Join Discord",function()
-    return "Joins The Simple Spy Discord"
-end,
-function()
-    setclipboard("https://discord.com/invite/AWS6ez9")
-    TextLabel.Text = "Copied invite to your clipboard"
-    if request then
-        request({Url = 'http://127.0.0.1:6463/rpc?v=1',Method = 'POST',Headers = {['Content-Type'] = 'application/json', Origin = 'https://discord.com'},Body = http:JSONEncode({cmd = 'INVITE_BROWSER',nonce = http:GenerateGUID(false),args = {code = 'AWS6ez9'}})})
-    end
-end)
-
-if configs.supersecretdevtoggle then
-    newButton("Load SSV2.2",function()
-        return "Load's Simple Spy V2.2"
-    end,
-    function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"))()
-    end)
-    newButton("Load SSV3",function()
-        return "Load's Simple Spy V3"
-    end,
-    function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/SimpleSpySource.lua"))()
-    end)
-    local SuperSecretFolder = Create("Folder",{Parent = SimpleSpy3})
-    newButton("SUPER SECRET BUTTON",function()
-        return "You dont need a discription you already know what it does"
-    end,
-    function()
-        SuperSecretFolder:ClearAllChildren()
-        local random = listfiles("Music")
-        local NotSound = Create("Sound",{Parent = SuperSecretFolder,Looped = false,Volume = math.random(1,5),SoundId = getsynasset(random[math.random(1,#random)])})
-        NotSound:Play()
-    end)
-end
-
-getgenv().SimpleSpyExecutionManager = ExecutionManager
+getgenv().nluatExecutionManager = ExecutionManager
 
 return SimpleSpy
