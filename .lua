@@ -1,4 +1,3 @@
-aaaa
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
     getgenv().SimpleSpyShutdown()
 end
@@ -10,6 +9,81 @@ local realconfigs = {
     advancedinfo = false,
     supersecretdevtoggle = false
 }
+
+local ExecutionManager = {
+    executionCount = 0,
+    isSpamming = false,
+    spamTask = nil
+}
+
+function ExecutionManager:execute()
+    self.executionCount += 1
+    if selected and selected.Remote then
+        local Remote = selected.Remote
+        if TextLabel then
+            TextLabel.Text = "Executing..."
+        end
+        xpcall(function()
+            local returnvalue
+            if Remote:IsA("RemoteEvent") then
+                returnvalue = Remote:FireServer(unpack(selected.args))
+            else
+                returnvalue = Remote:InvokeServer(unpack(selected.args))
+            end
+            if TextLabel then
+                TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
+            end
+        end,function(err)
+            if TextLabel then
+                TextLabel.Text = ("Execution error!\n%s"):format(err)
+            end
+        end)
+    else
+        if TextLabel then
+            TextLabel.Text = "Source not found"
+        end
+    end
+    return self.executionCount
+end
+
+function ExecutionManager:executeMultiple(count)
+    for i = 1, count do
+        task.spawn(function()
+            local Remote = selected and selected.Remote
+            if Remote then
+                if Remote:IsA("RemoteEvent") then
+                    Remote:FireServer(unpack(selected.args))
+                else
+                    Remote:InvokeServer(unpack(selected.args))
+                end
+            end
+        end)
+    end
+end
+
+function ExecutionManager:toggleSpam()
+    self.isSpamming = not self.isSpamming
+    if self.isSpamming then
+        self.spamTask = task.spawn(function()
+            while self.isSpamming do
+                local Remote = selected and selected.Remote
+                if Remote then
+                    if Remote:IsA("RemoteEvent") then
+                        Remote:FireServer(unpack(selected.args))
+                    else
+                        Remote:InvokeServer(unpack(selected.args))
+                    end
+                end
+                task.wait()
+            end
+        end)
+    else
+        if self.spamTask then
+            task.cancel(self.spamTask)
+            self.spamTask = nil
+        end
+    end
+end
 
 local configs = newproxy(true)
 local configsmetatable = getmetatable(configs)
@@ -196,7 +270,7 @@ function ErrorPrompt(Message,state)
         local ErrorStoarge = Create("ScreenGui",{Parent = CoreGui,ResetOnSpawn = false})
         local thread = state and running()
         prompt:setParent(ErrorStoarge)
-        prompt:setErrorTitle("nluat Error")
+        prompt:setErrorTitle("Simple Spy V3 Error")
         prompt:updateButtons({{
             Text = "Proceed",
             Callback = function()
@@ -230,7 +304,7 @@ local CodeBox = Create("Frame",{Parent = RightPanel,BackgroundColor3 = Color3.ne
 local ScrollingFrame = Create("ScrollingFrame",{Parent = RightPanel,Active = true,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 0, 0.5, 0),Size = UDim2.new(1, 0, 0.5, -9),CanvasSize = UDim2.new(0, 0, 0, 0),ScrollBarThickness = 4})
 local UIGridLayout = Create("UIGridLayout",{Parent = ScrollingFrame,HorizontalAlignment = Enum.HorizontalAlignment.Center,SortOrder = Enum.SortOrder.LayoutOrder,CellPadding = UDim2.new(0, 0, 0, 0),CellSize = UDim2.new(0, 94, 0, 27)})
 local TopBar = Create("Frame",{Parent = Background,BackgroundColor3 = Color3.fromRGB(37, 35, 38),BorderSizePixel = 0,Size = UDim2.new(0, 450, 0, 19)})
-local Simple = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(1, 1, 1),AutoButtonColor = false,BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 0),Size = UDim2.new(0, 57, 0, 18),Font = Enum.Font.SourceSansBold,Text =  "nluat",TextColor3 = Color3.new(1, 1, 1),TextSize = 14,TextXAlignment = Enum.TextXAlignment.Left})
+local Simple = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(1, 1, 1),AutoButtonColor = false,BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 0),Size = UDim2.new(0, 57, 0, 18),Font = Enum.Font.SourceSansBold,Text =  "SimpleSpy",TextColor3 = Color3.new(1, 1, 1),TextSize = 14,TextXAlignment = Enum.TextXAlignment.Left})
 local CloseButton = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(0.145098, 0.141176, 0.14902),BorderSizePixel = 0,Position = UDim2.new(1, -19, 0, 0),Size = UDim2.new(0, 19, 0, 19),Font = Enum.Font.SourceSans,Text = "",TextColor3 = Color3.new(0, 0, 0),TextSize = 14})
 local ImageLabel = Create("ImageLabel",{Parent = CloseButton,BackgroundColor3 = Color3.new(1, 1, 1),BackgroundTransparency = 1,Position = UDim2.new(0, 5, 0, 5),Size = UDim2.new(0, 9, 0, 9),Image = "http://www.roblox.com/asset/?id=5597086202"})
 local MaximizeButton = Create("TextButton",{Parent = TopBar,BackgroundColor3 = Color3.new(0.145098, 0.141176, 0.14902),BorderSizePixel = 0,Position = UDim2.new(1, -38, 0, 0),Size = UDim2.new(0, 19, 0, 19),Font = Enum.Font.SourceSans,Text = "",TextColor3 = Color3.new(0, 0, 0),TextSize = 14})
@@ -908,7 +982,7 @@ function newRemote(type, data)
 
     local log = {
         Name = remote.name,
-        Function = data.infofunc or "Function Info is disabled",
+        Function = data.infofunc or "--Function Info is disabled",
         Remote = remote,
         DebugId = data.id,
         metamethod = data.metamethod,
@@ -918,7 +992,7 @@ function newRemote(type, data)
         Blocked = data.blocked,
         Source = callingscript,
         returnvalue = data.returnvalue,
-        GenScript = "Generating, please wait..."
+        GenScript = "-- Generating, please wait...\n-- (If this message persists, the remote args are likely extremely long)"
     }
 
     logs[#logs + 1] = log
@@ -927,7 +1001,7 @@ function newRemote(type, data)
         eventSelect(RemoteTemplate)
         log.GenScript = genScript(log.Remote, log.args)
         if blocked then
-            log.GenScript = "THIS REMOTE WAS PREVENTED FROM FIRING TO THE SERVER BY nluat\n\n" .. log.GenScript
+            log.GenScript = "-- THIS REMOTE WAS PREVENTED FROM FIRING TO THE SERVER BY SIMPLESPY\n\n" .. log.GenScript
         end
         if selected == log and RemoteTemplate then
             eventSelect(RemoteTemplate)
@@ -946,7 +1020,7 @@ function genScript(remote, args)
         xpcall(function()
             gen = v2v({args = args}) .. "\n"
         end,function(err)
-            gen = gen .. "An error has occured:\n"..err.."\nTableToString failure! Reverting to legacy functionality\nlocal args = {"
+            gen ..= "-- An error has occured:\n--"..err.."\n-- TableToString failure! Reverting to legacy functionality (results may vary)\nlocal args = {"
             xpcall(function()
                 for i, v in next, args do
                     if type(i) ~= "Instance" and type(i) ~= "userdata" then
@@ -954,7 +1028,7 @@ function genScript(remote, args)
                     elseif type(i) == "string" then
                         gen = gen .. '\n    ["' .. i .. '"] = '
                     elseif type(i) == "userdata" and typeof(i) ~= "Instance" then
-                        gen = gen .. "\n    [" .. string.format("nil %s", typeof(v)) .. ")] = "
+                        gen = gen .. "\n    [" .. string.format("nil --[[%s]]", typeof(v)) .. ")] = "
                     elseif type(i) == "userdata" then
                          gen = gen .. "\n    [game." .. i:GetFullName() .. ")] = "
                     end
@@ -963,29 +1037,29 @@ function genScript(remote, args)
                     elseif type(v) == "string" then
                         gen = gen .. '"' .. v .. '"'
                     elseif type(v) == "userdata" and typeof(v) ~= "Instance" then
-                        gen = gen .. string.format("nil %s", typeof(v))
+                        gen = gen .. string.format("nil --[[%s]]", typeof(v))
                     elseif type(v) == "userdata" then
                         gen = gen .. "game." .. v:GetFullName()
                     end
                 end
-                gen = gen .. "\n}\n\n"
+                gen ..= "\n}\n\n"
             end,function()
-                gen = gen .. "}\nLegacy tableToString failure! Unable to decompile."
+                gen ..= "}\n-- Legacy tableToString failure! Unable to decompile."
             end)
         end)
         if not remote:IsDescendantOf(game) and not getnilrequired then
             gen = "function getNil(name,class) for _,v in next, getnilinstances()do if v.ClassName==class and v.Name==name then return v;end end end\n\n" .. gen
         end
         if remote:IsA("RemoteEvent") then
-            gen = gen .. v2s(remote) .. ":FireServer(unpack(args))"
+            gen ..= v2s(remote) .. ":FireServer(unpack(args))"
         elseif remote:IsA("RemoteFunction") then
             gen = gen .. v2s(remote) .. ":InvokeServer(unpack(args))"
         end
     else
         if remote:IsA("RemoteEvent") then
-            gen = gen .. v2s(remote) .. ":FireServer()"
+            gen ..= v2s(remote) .. ":FireServer()"
         elseif remote:IsA("RemoteFunction") then
-            gen = gen .. v2s(remote) .. ":InvokeServer()"
+            gen ..= v2s(remote) .. ":InvokeServer()"
         end
     end
     prevTables = {}
@@ -1102,10 +1176,10 @@ ufunctions = {
         return `Color3.new({u.R}, {u.G}, {u.B})`
     end,
     RBXScriptSignal = function(u)
-        return "RBXScriptSignal"
+        return "RBXScriptSignal --[[RBXScriptSignal's are not supported]]"
     end,
     RBXScriptConnection = function(u)
-        return "RBXScriptConnection"
+        return "RBXScriptConnection --[[RBXScriptConnection's are not supported]]"
     end,
 }
 
@@ -1146,7 +1220,7 @@ local typev2sfunctions = {
         if ufunctions[vtypeof] then
             return ufunctions[vtypeof](v)
         end
-        return `{vtypeof}({rawtostring(v)})`
+        return `{vtypeof}({rawtostring(v)}) --[[Generation Failure]]`
     end,
     vector = ufunctions["Vector3"]
 }
@@ -1167,7 +1241,7 @@ function v2s(v, l, p, n, vtv, i, pt, path, tables, tI)
     elseif vtypefunc then
         return vtypefunc(v,vtypeof)
     end
-    return `{vtypeof}({rawtostring(v)})`
+    return `{vtypeof}({rawtostring(v)}) --[[Generation Failure]]`
 end
 
 function v2v(t)
@@ -1219,7 +1293,7 @@ function t2s(t, l, p, n, vtv, i, pt, path, tables, tI)
     for _, v in next, tables do
         if n and rawequal(v, t) then
             bottomstr = bottomstr .. "\n" .. rawtostring(n) .. rawtostring(path) .. " = " .. rawtostring(n) .. rawtostring(({v2p(v, p)})[2])
-            return "{}"
+            return "{} --[[DUPLICATE]]"
         end
     end
     table.insert(tables, t)
@@ -1229,7 +1303,7 @@ function t2s(t, l, p, n, vtv, i, pt, path, tables, tI)
     for k, v in next, t do
         size = size + 1
         if size > (getgenv().SimpleSpyMaxTableSize or 1000) then
-            s = s .. "\n" .. string.rep(" ", l) .. "MAXIMUM TABLE SIZE REACHED, CHANGE 'getgenv().SimpleSpyMaxTableSize' TO ADJUST MAXIMUM SIZE "
+            s = s .. "\n" .. string.rep(" ", l) .. "-- MAXIMUM TABLE SIZE REACHED, CHANGE 'getgenv().SimpleSpyMaxTableSize' TO ADJUST MAXIMUM SIZE "
             break
         end
         if rawequal(k, t) then
@@ -1278,7 +1352,7 @@ function f2s(f)
         local funcname = info(f,"n")
         
         if funcname and funcname:match("^[%a_]+[%w_]*$") then
-            return `function {funcname}() end`
+            return `function {funcname}() end -- Function Called: {funcname}`
         end
     end
     return tostring(f)
@@ -1403,7 +1477,7 @@ function formatstr(s, indentation)
         indentation = 0
     end
     local handled, reachedMax = handlespecials(s, indentation)
-    return '"' .. handled .. '"' .. (reachedMax and " MAXIMUM STRING SIZE REACHED, CHANGE 'getgenv().SimpleSpyMaxStringSize' TO ADJUST MAXIMUM SIZE" or "")
+    return '"' .. handled .. '"' .. (reachedMax and " --[[ MAXIMUM STRING SIZE REACHED, CHANGE 'getgenv().SimpleSpyMaxStringSize' TO ADJUST MAXIMUM SIZE ]]" or "")
 end
 
 local function isFinished(coroutines: table)
@@ -1752,12 +1826,12 @@ end
 if not getgenv().SimpleSpyExecuted then
     local succeeded,err = pcall(function()
         if not RunService:IsClient() then
-            error("nluat cannot run on the server!")
+            error("SimpleSpy cannot run on the server!")
         end
         getgenv().SimpleSpyShutdown = shutdown
         onToggleButtonClick()
         if not hookmetamethod then
-            ErrorPrompt("nluat will not function to it's fullest capablity due to your executor not supporting hookmetamethod.",true)
+            ErrorPrompt("Simple Spy V3 will not function to it's fullest capablity due to your executor not supporting hookmetamethod.",true)
         end
         codebox = Highlight.new(CodeBox)
         logthread(spawn(function()
@@ -1824,11 +1898,9 @@ function SimpleSpy:newButton(name, description, onClick)
     return newButton(name, description, onClick)
 end
 
-local spamTasks = {}
-
 newButton(
     "Run Code",
-    function() return "Execute captured remote once" end,
+    function() return "Click to execute code" end,
     function()
         local Remote = selected and selected.Remote
         if Remote then
@@ -1840,6 +1912,7 @@ newButton(
                 else
                     returnvalue = Remote:InvokeServer(unpack(selected.args))
                 end
+
                 TextLabel.Text = ("Executed successfully!\n%s"):format(v2s(returnvalue))
             end,function(err)
                 TextLabel.Text = ("Execution error!\n%s"):format(err)
@@ -1854,20 +1927,9 @@ newButton(
     "Run x100",
     function() return "Execute captured remote 100 times" end,
     function()
-        local Remote = selected and selected.Remote
-        if Remote then
-            for i = 1, 100 do
-                task.spawn(function()
-                    if Remote:IsA("RemoteEvent") then
-                        Remote:FireServer(unpack(selected.args))
-                    else
-                        Remote:InvokeServer(unpack(selected.args))
-                    end
-                end)
-            end
-            TextLabel.Text = "Executed 100 times!"
-        else
-            TextLabel.Text = "Source not found"
+        ExecutionManager:executeMultiple(100)
+        if TextLabel then
+            TextLabel.Text = "Executing 100 times..."
         end
     end
 )
@@ -1876,20 +1938,9 @@ newButton(
     "Run x1000",
     function() return "Execute captured remote 1000 times" end,
     function()
-        local Remote = selected and selected.Remote
-        if Remote then
-            for i = 1, 1000 do
-                task.spawn(function()
-                    if Remote:IsA("RemoteEvent") then
-                        Remote:FireServer(unpack(selected.args))
-                    else
-                        Remote:InvokeServer(unpack(selected.args))
-                    end
-                end)
-            end
-            TextLabel.Text = "Executed 1000 times!"
-        else
-            TextLabel.Text = "Source not found"
+        ExecutionManager:executeMultiple(1000)
+        if TextLabel then
+            TextLabel.Text = "Executing 1000 times..."
         end
     end
 )
@@ -1916,7 +1967,7 @@ newButton(
 
 newButton(
     "Get Script",
-    function() return "Click to copy calling script to clipboard" end,
+    function() return "Click to copy calling script to clipboard\nWARNING: Not super reliable, nil == could not find" end,
     function()
         if selected then
             if not selected.Source then
@@ -1944,7 +1995,7 @@ function()
             
             info = {
                 info = getinfo(func),
-                constants = lclosure and deepclone(getconstants(func)) or "N/A",
+                constants = lclosure and deepclone(getconstants(func)) or "N/A --Lua Closure expected got C Closure",
                 upvalues = deepclone(getupvalues(func)),
                 script = {
                     SourceScript = SourceScript or 'nil',
@@ -1962,11 +2013,11 @@ function()
                         CallingScriptDebugId = CallingScript and typeof(SourceScript) == "Instance" and OldDebugId(CallingScript) or "N/A",
                         RemoteDebugId = OldDebugId(Remote)
                     },
-                    Protos = lclosure and getprotos(func) or "N/A"
+                    Protos = lclosure and getprotos(func) or "N/A --Lua Closure expected got C Closure"
                 }
 
                 if Remote:IsA("RemoteFunction") then
-                    info["advancedinfo"]["OnClientInvoke"] = getcallbackmember and (getcallbackmember(Remote,"OnClientInvoke") or "N/A") or "N/A"
+                    info["advancedinfo"]["OnClientInvoke"] = getcallbackmember and (getcallbackmember(Remote,"OnClientInvoke") or "N/A") or "N/A --Missing function getcallbackmember"
                 elseif getconnections then
                     info["advancedinfo"]["OnClientEvents"] = {}
 
@@ -1981,8 +2032,8 @@ function()
             codebox:setRaw("Converting table to string please wait")
             selected.Function = v2v({functionInfo = info})
         end
-        codebox:setRaw("Calling function info\nGenerated by the nluat serializer\n\n"..selected.Function)
-        TextLabel.Text = "Done! Function info generated by the nluat Serializer."
+        codebox:setRaw("Calling function info\nGenerated by the SimpleSpy V3 serializer\n\n"..selected.Function)
+        TextLabel.Text = "Done! Function info generated by the SimpleSpy V3 Serializer."
     else
         TextLabel.Text = "Error! Selected function was not found."
     end
@@ -2007,7 +2058,7 @@ newButton(
 
 newButton(
     "Exclude (i)",
-    function() return "Click to exclude this Remote." end,
+    function() return "Click to exclude this Remote.\nExcluding a remote makes SimpleSpy ignore it, but it will continue to be usable." end,
     function()
         if selected then
             blacklist[OldDebugId(selected.Remote)] = true
@@ -2018,7 +2069,7 @@ newButton(
 
 newButton(
     "Exclude (n)",
-    function() return "Click to exclude all remotes with this name." end,
+    function() return "Click to exclude all remotes with this name.\nExcluding a remote makes SimpleSpy ignore it, but it will continue to be usable." end,
     function()
         if selected then
             blacklist[selected.Name] = true
@@ -2028,7 +2079,7 @@ newButton(
 )
 
 newButton("Clr Blacklist",
-function() return "Click to clear the blacklist." end,
+function() return "Click to clear the blacklist.\nExcluding a remote makes SimpleSpy ignore it, but it will continue to be usable." end,
 function()
     blacklist = {}
     TextLabel.Text = "Blacklist cleared!"
@@ -2036,7 +2087,7 @@ end)
 
 newButton(
     "Block (i)",
-    function() return "Click to stop this remote from firing." end,
+    function() return "Click to stop this remote from firing.\nBlocking a remote won't remove it from SimpleSpy logs, but it will not continue to fire the server." end,
     function()
         if selected then
             blocklist[OldDebugId(selected.Remote)] = true
@@ -2046,7 +2097,7 @@ newButton(
 )
 
 newButton("Block (n)",function()
-    return "Click to stop remotes with this name from firing." end,
+    return "Click to stop remotes with this name from firing.\nBlocking a remote won't remove it from SimpleSpy logs, but it will not continue to fire the server." end,
     function()
         if selected then
             blocklist[selected.Name] = true
@@ -2057,7 +2108,7 @@ newButton("Block (n)",function()
 
 newButton(
     "Clr Blocklist",
-    function() return "Click to stop blocking remotes." end,
+    function() return "Click to stop blocking remotes.\nBlocking a remote won't remove it from SimpleSpy logs, but it will not continue to fire the server." end,
     function()
         blocklist = {}
         TextLabel.Text = "Blocklist cleared!"
@@ -2075,7 +2126,7 @@ newButton("Decompile",
                     codebox:setRaw("Decompiling")
 
                     xpcall(function()
-                        local decompiledsource = decompile(Source):gsub("Decompiled with the Synapse X Luau decompiler.","")
+                        local decompiledsource = decompile(Source):gsub("-- Decompiled with the Synapse X Luau decompiler.","")
                         local Sourcev2s = v2s(Source)
                         if (decompiledsource):find("script") and Sourcev2s then
                             DecompiledScripts[Source] = ("local script = %s\n%s"):format(Sourcev2s,decompiledsource)
@@ -2097,19 +2148,19 @@ newButton("Decompile",
 
 newButton(
     "Disable Info",
-    function() return string.format("[%s] Toggle function info", configs.funcEnabled and "ENABLED" or "DISABLED") end,
+    function() return string.format("[%s] Toggle function info (because it can cause lag in some games)", configs.funcEnabled and "ENABLED" or "DISABLED") end,
     function()
         configs.funcEnabled = not configs.funcEnabled
-        TextLabel.Text = string.format("[%s] Toggle function info", configs.funcEnabled and "ENABLED" or "DISABLED")
+        TextLabel.Text = string.format("[%s] Toggle function info (because it can cause lag in some games)", configs.funcEnabled and "ENABLED" or "DISABLED")
     end
 )
 
 newButton(
     "Autoblock",
-    function() return string.format("[%s] Intelligently detects and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED") end,
+    function() return string.format("[%s] [BETA] Intelligently detects and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED") end,
     function()
         configs.autoblock = not configs.autoblock
-        TextLabel.Text = string.format("[%s] Intelligently detects and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED")
+        TextLabel.Text = string.format("[%s] [BETA] Intelligently detects and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED")
         history = {}
         excluding = {}
     end
@@ -2132,27 +2183,13 @@ function()
 end)
 
 newButton("Auto Spam",
-    function() return "Start infinite spam of selected remote" end,
-    function()
-        local Remote = selected and selected.Remote
-        if Remote then
-            local taskId = #spamTasks + 1
-            spamTasks[taskId] = task.spawn(function()
-                while spamTasks[taskId] do
-                    if Remote:IsA("RemoteEvent") then
-                        Remote:FireServer(unpack(selected.args))
-                    else
-                        Remote:InvokeServer(unpack(selected.args))
-                    end
-                    task.wait()
-                end
-            end)
-            TextLabel.Text = "Auto spam started! Click again to add more spam."
-        else
-            TextLabel.Text = "No remote selected"
-        end
-    end
-)
+function() 
+    return string.format("[%s] Continuous execution", ExecutionManager.isSpamming and "ACTIVE" or "INACTIVE") 
+end,
+function()
+    ExecutionManager:toggleSpam()
+    TextLabel.Text = string.format("Auto spam %s", ExecutionManager.isSpamming and "enabled" or "disabled")
+end)
 
 if configs.supersecretdevtoggle then
     newButton("Load SSV2.2",function()
@@ -2178,5 +2215,7 @@ if configs.supersecretdevtoggle then
         NotSound:Play()
     end)
 end
+
+getgenv().SimpleSpyExecutionManager = ExecutionManager
 
 return SimpleSpy
